@@ -1,0 +1,21 @@
+server:
+  port: 8080
+  read_timeout: 10s
+  write_timeout: 10s
+
+database:
+  host: localhost
+  port: 5432
+  name: tinyurl
+  username: tinyurl
+  password: secret
+
+redis:
+  host: localhost
+  port: 6379
+  ttl: 24h
+
+urlshortener:
+  base_url: http://localhost:8080
+  code_length: 7
+  default_ttl: 43800h # 5 years 
