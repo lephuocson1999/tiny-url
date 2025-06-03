@@ -8,6 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/jackc/pgx/v5 v5.5.4
 	github.com/redis/go-redis/v9 v9.0.0
+	github.com/sony/sonyflake v1.0.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

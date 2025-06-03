@@ -2,47 +2,24 @@ package app
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/sony/sonyflake"
 )
 
-type SafeIDGenerator struct {
-	rdb         *redis.Client
-	db          *sql.DB
-	key         string
-	backupEvery int64
+type SonyflakeIDGenerator struct {
+	flake *sonyflake.Sonyflake
 }
 
-func NewSafeIDGenerator(rdb *redis.Client, db *sql.DB, key string, backupEvery int64) *SafeIDGenerator {
-	return &SafeIDGenerator{rdb: rdb, db: db, key: key, backupEvery: backupEvery}
+func NewSonyflakeIDGenerator() *SonyflakeIDGenerator {
+	return &SonyflakeIDGenerator{
+		flake: sonyflake.NewSonyflake(sonyflake.Settings{}),
+	}
 }
 
-func (g *SafeIDGenerator) NextID(ctx context.Context) (int64, error) {
-	id, err := g.rdb.Incr(ctx, g.key).Result()
+func (g *SonyflakeIDGenerator) NextID(ctx context.Context) (int64, error) {
+	id, err := g.flake.NextID()
 	if err != nil {
 		return 0, err
 	}
-
-	fmt.Println("id", id)
-	go func(id int64) {
-		_, _ = g.db.ExecContext(context.Background(),
-			"UPDATE id_counters SET value = $1 WHERE name = 'url_id'", id)
-	}(id)
-
-	return id, nil
-}
-
-func (g *SafeIDGenerator) RestoreFromDB(ctx context.Context) error {
-	var dbVal int64
-	err := g.db.QueryRowContext(ctx, "SELECT value FROM id_counters WHERE name = 'url_id'").Scan(&dbVal)
-	if err != nil {
-		return err
-	}
-	redisVal, _ := g.rdb.Get(ctx, g.key).Int64()
-	if dbVal != redisVal {
-		return g.rdb.Set(ctx, g.key, dbVal, 0).Err()
-	}
-	return nil
+	return int64(id), nil
 }

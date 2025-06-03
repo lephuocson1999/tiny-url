@@ -1,16 +1,13 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/redis/go-redis/v9"
 
 	"tiny-url/internal/api"
 	"tiny-url/internal/app"
@@ -38,23 +35,8 @@ func main() {
 
 	// Redis and SafeIDGenerator setup
 	var cache app.Cache
-	var idGen app.IDGenerator
-	rdb := redis.NewClient(&redis.Options{
-		Addr:         cfg.Redis.Host + ":" + itoa(cfg.Redis.Port),
-		DB:           0,
-		DialTimeout:  2 * time.Second,
-		ReadTimeout:  2 * time.Second,
-		WriteTimeout: 2 * time.Second,
-	})
-	if err := rdb.Ping(context.Background()).Err(); err != nil {
-		log.Fatalf("failed to connect to Redis for ID generation: %v", err)
-	} else {
-		cache = app.NewRedisCache(rdb)
-		idGen = app.NewSafeIDGenerator(rdb, db, "url:id:counter", 1000)
-		if err := idGen.(*app.SafeIDGenerator).RestoreFromDB(context.Background()); err != nil {
-			log.Fatalf("failed to restore ID counter from DB: %v", err)
-		}
-	}
+	// Sonyflake ID generator setup
+	idGen := app.NewSonyflakeIDGenerator()
 
 	service := app.NewURLShortenerService(repository, cache, idGen)
 	handler := api.NewHandler(service)
